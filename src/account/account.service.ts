@@ -28,7 +28,9 @@ export class AccountService {
             index: blockHeight.toString(),
             hash: block.id,
           },
-          balances: [{ value: balance[0].amount, currency: request.currencies[0] }],
+          balances: [
+            { value: balance[0].amount, currency: request.currencies[0] },
+          ],
         } as AccountBalanceResponsetDto;
       }
       default: {
@@ -36,5 +38,4 @@ export class AccountService {
       }
     }
   }
-
 }
