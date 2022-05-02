@@ -1,12 +1,15 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
+import { MempoolRequestDto, MempoolResponseDto } from 'src/types';
 import { MempoolService } from './mempool.service';
 
 @Controller('/mempool')
 export class MempoolController {
   constructor(private readonly mempoolService: MempoolService) {}
 
-  @Get()
-  getHello(): string {
-    return this.mempoolService.getHello();
+  @Post()
+  async getMempoolTransaction(
+    @Body() request: MempoolRequestDto,
+  ): Promise<MempoolResponseDto> {
+    return await this.mempoolService.getMempoolTransactions(request);
   }
 }

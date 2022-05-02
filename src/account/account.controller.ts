@@ -10,11 +10,6 @@ class AddressBody {
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
 
-  @Get()
-  getHello(): string {
-    return this.accountService.getHello();
-  }
-
   @Post('balance')
   async getBalance(
     @Body() request: AccountBalanceRequestDto,

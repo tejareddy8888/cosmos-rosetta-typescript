@@ -2,16 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 import { Currency } from './currency.dto';
 import { NetworkInfo } from './network.info';
-
-export class Address {
-  @ApiProperty({ type: 'string' })
-  address: string;
-}
-
-export class AccountIdentifier extends Address {
-  @ApiProperty({ type: Address })
-  sub_account?: Address;
-}
+import { AccountIdentifier } from './address.dto';
 
 export class AccountBalanceRequestDto extends NetworkInfo {
   @ApiProperty({ type: AccountIdentifier })

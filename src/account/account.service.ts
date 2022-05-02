@@ -1,15 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
-import { ConfigService } from '../config/config.service';
+import { ConfigService } from '../config';
 import { AccountBalanceRequestDto, AccountBalanceResponsetDto } from '../types';
 
 @Injectable()
 export class AccountService {
   constructor(private readonly configService: ConfigService) {}
-
-  getHello(): string {
-    return 'Hello World!';
-  }
 
   async getBalances(
     request: AccountBalanceRequestDto,
@@ -19,7 +15,7 @@ export class AccountService {
         const [blockHeight, block, balance] = await Promise.all([
           this.configService.stargateClient.getHeight(),
           this.configService.stargateClient.getBlock(),
-          this.configService.cosmosReader!.bank.allBalances(
+          this.configService.cosmosReader?.bank.allBalances(
             request.account_identifier.address,
           ),
         ]);

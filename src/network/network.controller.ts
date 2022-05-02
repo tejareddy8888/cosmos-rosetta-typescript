@@ -28,7 +28,7 @@ export class NetworkController {
     return this.networkService.getNetworkStatus(request);
   }
 
-  @Post('Currencies')
+  @Post('currencies')
   async getCurrencies(@Body() request: NetworkInfo) {
     return this.networkService.getCurrencies(request);
   }

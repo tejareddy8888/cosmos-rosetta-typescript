@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JsonRpcSuccessResponse } from '@cosmjs/json-rpc';
 
-import { ConfigService } from '../config/config.service';
+import { ConfigService } from '../config';
 import {
   BlockIdentifier,
   Currency,
