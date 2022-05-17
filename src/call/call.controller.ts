@@ -1,12 +1,13 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
+import { CallRequest, CallResponse, Error } from 'src/types';
 import { CallService } from './call.service';
 
 @Controller('/call')
 export class CallController {
   constructor(private readonly callService: CallService) {}
 
-  @Get()
-  getHello(): string {
-    return this.callService.getHello();
+  @Post()
+  getCalledFunction(@Body() request: CallRequest): CallResponse | Error {
+    return this.callService.getCall(request);
   }
 }

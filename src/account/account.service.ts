@@ -1,37 +1,57 @@
 import { Injectable } from '@nestjs/common';
 
 import { ConfigService } from '../config';
-import { AccountBalanceRequestDto, AccountBalanceResponsetDto } from '../types';
+import { AccountBalanceRequest, AccountBalanceResponse, Error } from '../types';
 
 @Injectable()
 export class AccountService {
   constructor(private readonly configService: ConfigService) {}
 
   async getBalances(
-    request: AccountBalanceRequestDto,
-  ): Promise<AccountBalanceResponsetDto> {
-    switch (request.blockchain) {
+    request: AccountBalanceRequest,
+  ): Promise<AccountBalanceResponse | Error> {
+    switch (request.network_identifier.blockchain) {
       case 'cosmoshub-4': {
-        const [blockHeight, block, balance] = await Promise.all([
+        const [blockHeight, block, balances] = await Promise.all([
           this.configService.stargateClient.getHeight(),
           this.configService.stargateClient.getBlock(),
           this.configService.cosmosReader?.bank.allBalances(
             request.account_identifier.address,
           ),
         ]);
+        const balance = balances.find(
+          (balance) =>
+            balance.denom.toLowerCase() === request.currencies[0].symbol,
+        );
         return {
           block_identifier: {
-            index: blockHeight.toString(),
+            index: blockHeight,
             hash: block.id,
           },
           balances: [
-            { value: balance[0].amount, currency: request.currencies[0] },
+            {
+              value: balance.amount,
+              Currency: request.currencies[0],
+            },
           ],
-        } as AccountBalanceResponsetDto;
+        } as AccountBalanceResponse;
       }
       default: {
-        throw new Error(`unspported network ${request.blockchain}`);
+        return {
+          code: 404,
+          message: `unspported network ${request.network_identifier}`,
+          retriable: false,
+        };
       }
     }
+  }
+
+  getCoins(request: AccountBalanceRequest): AccountBalanceResponse | Error {
+    return {
+      code: 404,
+      message:
+        'As this adapter currently does not provide any support for UTXOs, this call is not supported',
+      retriable: false,
+    };
   }
 }

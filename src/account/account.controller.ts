@@ -1,19 +1,23 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 
 import { AccountService } from './account.service';
-import { AccountBalanceRequestDto, AccountBalanceResponsetDto } from '../types';
+import { AccountBalanceRequest, AccountBalanceResponse, Error } from '../types';
 
-class AddressBody {
-  address: string;
-}
 @Controller('account')
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
 
   @Post('balance')
   async getBalance(
-    @Body() request: AccountBalanceRequestDto,
-  ): Promise<AccountBalanceResponsetDto> {
+    @Body() request: AccountBalanceRequest,
+  ): Promise<AccountBalanceResponse | Error> {
     return this.accountService.getBalances(request);
+  }
+
+  @Post('coins')
+  async getCoins(
+    @Body() request: AccountBalanceRequest,
+  ): Promise<AccountBalanceResponse | Error> {
+    return this.accountService.getCoins(request);
   }
 }

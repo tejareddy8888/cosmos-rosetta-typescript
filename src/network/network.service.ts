@@ -5,11 +5,12 @@ import { ConfigService } from '../config';
 import {
   BlockIdentifier,
   Currency,
-  NetworkInfo,
-  NetworkRequestDto,
-  NetworkResponseDto,
-  NetworkStatusRequestDto,
-  NetworkStatusResponseDto,
+  MetadataRequest,
+  NetworkRequest,
+  NetworkListResponse,
+  NetworkStatusResponse,
+  NetworkOptionsResponse,
+  Error,
 } from '../types';
 
 @Injectable()
@@ -25,9 +26,7 @@ export class NetworkService {
     });
   }
 
-  async getNetworkInfo(
-    request: NetworkRequestDto,
-  ): Promise<NetworkResponseDto> {
+  async getNetworkInfo(request: MetadataRequest): Promise<NetworkListResponse> {
     const [networkResponse, abciResponse] = await Promise.all([
       this.configService.httpClient.execute({
         id: '-1',
@@ -64,9 +63,9 @@ export class NetworkService {
   }
 
   async getNetworkStatus(
-    request: NetworkStatusRequestDto,
-  ): Promise<NetworkStatusResponseDto> {
-    switch (request.blockchain) {
+    request: NetworkRequest,
+  ): Promise<NetworkStatusResponse | Error> {
+    switch (request.network_identifier.blockchain) {
       case 'cosmoshub-4': {
         const [statusCallResponse, networkInfoResponse] = await Promise.all([
           this.configService.httpClient.execute({
@@ -83,12 +82,12 @@ export class NetworkService {
           }),
         ]);
 
-        const { sync_info, node_info, _ } = statusCallResponse.result;
+        const { sync_info, _ } = statusCallResponse.result;
         const genesis_block_identifier: BlockIdentifier = {
           index: sync_info.earliest_block_height,
           hash: sync_info.earliest_block_hash,
         };
-        const Response: NetworkStatusResponseDto = {
+        const Response: NetworkStatusResponse = {
           current_block_identifier: {
             index: sync_info.latest_block_height,
             hash: sync_info.latest_block_hash,
@@ -111,26 +110,76 @@ export class NetworkService {
       }
 
       default: {
-        throw new Error(`unspported network ${request.blockchain}`);
+        return {
+          code: 404,
+          message: 'unsupported action',
+          retriable: false,
+        };
       }
     }
   }
 
-  async getCurrencies(request: NetworkInfo): Promise<Currency> {
-    switch (request.blockchain) {
+  async getCurrencies(request: NetworkRequest): Promise<Currency | Error> {
+    switch (request.network_identifier.blockchain) {
       case 'cosmoshub-4': {
         const denomMetadata =
           await this.configService.cosmosReader.bank.denomsMetadata();
 
         return {
           symbol: denomMetadata[0].base,
-          decimals: denomMetadata[0].denomUnits
-            .find((each) => each.denom === 'atom')
-            .exponent.toString(),
+          decimals: denomMetadata[0].denomUnits.find(
+            (each) => each.denom === 'atom',
+          ).exponent,
         };
       }
       default: {
-        throw new Error(`unspported network ${request.blockchain}`);
+        return {
+          code: 404,
+          message: 'unsupported action',
+          retriable: false,
+        };
+      }
+    }
+  }
+
+  async getOptions(
+    request: NetworkRequest,
+  ): Promise<NetworkOptionsResponse | Error> {
+    const rosetta_version = '1.4.12';
+    switch (request.network_identifier.blockchain) {
+      case 'cosmoshub-4': {
+        const networkInfoResponse = await this.configService.httpClient.execute(
+          {
+            id: '-1',
+            jsonrpc: '2.0',
+            method: 'net_info',
+            params: [],
+          },
+        );
+
+        return {
+          version: {
+            rosetta_version,
+            node_version: networkInfoResponse.result.peers[0].node_info.version,
+          },
+          allow: {
+            operation_statuses: [],
+            operation_types: [],
+            errors: [],
+            historical_balance_lookup: false,
+            call_methods: [],
+            balance_exemptions: [],
+            mempool_coins: true,
+          },
+        };
+      }
+
+      default: {
+        return {
+          code: 404,
+          message: 'unsupported action',
+          retriable: false,
+        };
       }
     }
   }

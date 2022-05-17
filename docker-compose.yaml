@@ -1,6 +1,15 @@
 version: '3.9'
 
 services:
+  db:
+    image: postgres:alpine
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=csrosetta
+
   cosmos-adapter:
     image: node:16-alpine
     entrypoint: ["/bin/sh", "-c", "yarn start:dev --preserveWatchOutput"]
