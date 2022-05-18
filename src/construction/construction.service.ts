@@ -51,7 +51,7 @@ export class ConstructionService {
         const account = (await wallet.getAccounts())[0];
 
         return {
-          address: 'string',
+          address: account.address,
           account_identifier: {
             address: account.address,
           },

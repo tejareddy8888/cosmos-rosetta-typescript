@@ -7,6 +7,4 @@ import { ConfigService } from '../config';
 @Injectable()
 export class IndexerService {
   constructor(private readonly configService: ConfigService) {}
-
-
 }
