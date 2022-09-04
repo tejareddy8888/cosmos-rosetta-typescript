@@ -12,10 +12,14 @@ import {
   NetworkOptionsResponse,
   Error,
 } from '../types';
+import { AdapterLogger } from 'src/logger';
 
 @Injectable()
 export class NetworkService {
-  constructor(private readonly configService: ConfigService) {}
+  private readonly logger: AdapterLogger;
+  constructor(private readonly configService: ConfigService) {
+    this.logger = new AdapterLogger(NetworkService.name);
+  }
 
   async getSupportedNetwork(): Promise<JsonRpcSuccessResponse> {
     return await this.configService.httpClient.execute({

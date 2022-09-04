@@ -11,10 +11,14 @@ import {
 } from 'src/types';
 
 import { ConfigService } from '../config/config.service';
+import { AdapterLogger } from 'src/logger';
 
 @Injectable()
 export class BlockService {
-  constructor(private readonly configService: ConfigService) {}
+  private readonly logger: AdapterLogger;
+  constructor(private readonly configService: ConfigService) {
+    this.logger = new AdapterLogger(BlockService.name);
+  }
 
   async getBlock(request: BlockRequest): Promise<BlockResponse | Error> {
     switch (request.network_identifier.blockchain) {
@@ -44,7 +48,6 @@ export class BlockService {
             }),
         );
 
-        console.log(fetchedTx);
         return {
           block: {
             block_identifier: {

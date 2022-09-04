@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import { AdapterLogger } from 'src/logger';
 
 import { ConfigService } from '../config';
 import { AccountBalanceRequest, AccountBalanceResponse, Error } from '../types';
 
 @Injectable()
 export class AccountService {
-  constructor(private readonly configService: ConfigService) {}
+  private readonly logger: AdapterLogger;
+  constructor(private readonly configService: ConfigService) {
+    this.logger = new AdapterLogger(AccountService.name);
+  }
 
   async getBalances(
     request: AccountBalanceRequest,

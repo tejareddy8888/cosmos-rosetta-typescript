@@ -298,10 +298,26 @@ export class CallResponse {
   @ApiProperty({ type: 'boolean' })
   idempotent: boolean;
 }
+export class MempoolRequest {
+  @ApiProperty({ type: NetworkIdentifier })
+  network_identifier: NetworkIdentifier;
+}
 
 export class MempoolResponse {
   @ApiProperty({ type: [TransactionIdentifier] })
   transaction_identifiers: TransactionIdentifier[];
+}
+
+export class MempoolTransactionRequest {
+  @ApiProperty({ type: NetworkIdentifier })
+  network_identifier: NetworkIdentifier;
+  @ApiProperty({ type: TransactionIdentifier })
+  transaction_identifier: TransactionIdentifier;
+}
+
+export class MempoolTransactionResponse {
+  @ApiProperty({ type: Transaction })
+  transaction: Transaction;
 }
 
 export class MetadataRequest {

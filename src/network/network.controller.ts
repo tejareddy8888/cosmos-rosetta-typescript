@@ -10,12 +10,18 @@ import {
   NetworkOptionsResponse,
   Error,
 } from '../types';
+import { ApiResponse } from '@nestjs/swagger';
 
 @Controller('network')
 export class NetworkController {
   constructor(private readonly networkService: NetworkService) {}
 
   @Post('list')
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the list of networks this Adapter supports',
+    type: NetworkListResponse,
+  })
   getSupportedNetwork(
     @Body() request: MetadataRequest,
   ): Promise<NetworkListResponse | Error> {
@@ -23,6 +29,11 @@ export class NetworkController {
   }
 
   @Post('status')
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the status of the network specified',
+    type: NetworkListResponse,
+  })
   getNetworkStatus(
     @Body() request: NetworkRequest,
   ): Promise<NetworkStatusResponse | Error> {
@@ -30,6 +41,11 @@ export class NetworkController {
   }
 
   @Post('currencies')
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the currencies used on the network specified',
+    type: NetworkListResponse,
+  })
   async getCurrencies(
     @Body() request: NetworkRequest,
   ): Promise<Currency | Error> {
@@ -37,6 +53,12 @@ export class NetworkController {
   }
 
   @Post('options')
+  @ApiResponse({
+    status: 200,
+    description:
+      'Returns the additional network options needed for the specified network',
+    type: NetworkListResponse,
+  })
   async getOptions(
     @Body() request: NetworkRequest,
   ): Promise<NetworkOptionsResponse | Error> {

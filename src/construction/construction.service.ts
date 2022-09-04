@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { makeSignDoc, Secp256k1Wallet, serializeSignDoc } from '@cosmjs/amino';
+import {
+  makeSignDoc,
+  Secp256k1Wallet,
+  serializeSignDoc,
+  rawSecp256k1PubkeyToRawAddress,
+  rawEd25519PubkeyToRawAddress,
+} from '@cosmjs/amino';
 import { coin } from '@cosmjs/stargate';
 import {
   DirectSecp256k1HdWallet,
@@ -7,6 +13,7 @@ import {
   EncodeObject,
 } from '@cosmjs/proto-signing';
 import { AminoTypes, Account } from '@cosmjs/stargate';
+import { toBech32 } from '@cosmjs/encoding';
 
 import {
   ConstructionDeriveRequest,
@@ -20,14 +27,17 @@ import {
   ConstructionPayloadsRequest,
   ConstructionPayloadsResponse,
 } from 'src/types';
-import { ConfigService } from 'src/config';
-import { AminoMsg } from '@cosmjs/stargate/node_modules/@cosmjs/amino';
+import { ConfigService } from '../config';
+import { AdapterLogger } from '../logger';
 
 const aminoTypes = new AminoTypes({ prefix: 'cosmos' });
 
 @Injectable()
 export class ConstructionService {
-  constructor(private configService: ConfigService) {}
+  private readonly logger: AdapterLogger;
+  constructor(private readonly configService: ConfigService) {
+    this.logger = new AdapterLogger(ConstructionService.name);
+  }
   async createAccount(
     request: ConstructionDeriveRequest,
   ): Promise<ConstructionDeriveResponse | Error> {
@@ -35,8 +45,8 @@ export class ConstructionService {
       case 'cosmoshub-4': {
         if (
           request.public_key &&
-          request.public_key.hex_bytes !== 'string' &&
-          request.public_key.curve_type !== 'secp256k1'
+          (request.public_key.curve_type == 'secp256r1' ||
+            request.public_key.curve_type == 'tweedle')
         ) {
           return {
             code: 404,
@@ -44,18 +54,36 @@ export class ConstructionService {
             retriable: false,
           };
         }
-        const wallet = await DirectSecp256k1HdWallet.generate(12, {
-          prefix: 'cosmos',
-        });
 
-        const account = (await wallet.getAccounts())[0];
+        if (request.public_key.curve_type === 'secp256k1') {
+          const address = toBech32(
+            'cosmos',
+            rawSecp256k1PubkeyToRawAddress(
+              Buffer.from(request.public_key.hex_bytes),
+            ),
+          );
+          return {
+            address,
+            account_identifier: {
+              address,
+            },
+          };
+        }
 
-        return {
-          address: account.address,
-          account_identifier: {
-            address: account.address,
-          },
-        };
+        if (request.public_key.curve_type === 'edwards25519') {
+          const address = toBech32(
+            'cosmos',
+            rawEd25519PubkeyToRawAddress(
+              Buffer.from(request.public_key.hex_bytes),
+            ),
+          );
+          return {
+            address,
+            account_identifier: {
+              address,
+            },
+          };
+        }
       }
       default: {
         return {
@@ -67,20 +95,20 @@ export class ConstructionService {
     }
   }
 
-  preprocess(): Error {
-    return {
-      code: 404,
-      message: `unspported operations for cosmos`,
-      retriable: false,
-    };
-  }
-  metadata() {
-    return {
-      code: 404,
-      message: `unspported operations for cosmos`,
-      retriable: false,
-    };
-  }
+  // preprocess(): Error {
+  //   return {
+  //     code: 404,
+  //     message: `unspported operations for cosmos`,
+  //     retriable: false,
+  //   };
+  // }
+  // metadata() {
+  //   return {
+  //     code: 404,
+  //     message: `unspported operations for cosmos`,
+  //     retriable: false,
+  //   };
+  // }
 
   //directSecp256k1Wallet MakeSignDoc or MakeSignBytes, step 1 for creating unsigned payloads
   payload(request: ConstructionPayloadsRequest): ConstructionPayloadsResponse {
@@ -96,15 +124,15 @@ export class ConstructionService {
     return { unsigned_transaction: JSON.stringify(txBody), payloads: [] };
   }
 
-  //SigningStargateClient, simulate, step 2 for creating unsigned payloads
-  parse() {
-    // As cosmos needs signing object to simulate the transaction to check the correctnesss, this was not implemented
-    return {
-      code: 404,
-      message: `unspported operations for cosmos`,
-      retriable: false,
-    };
-  }
+  // //SigningStargateClient, simulate, step 2 for creating unsigned payloads
+  // parse() {
+  //   // As cosmos needs signing object to simulate the transaction to check the correctnesss, this was not implemented
+  //   return {
+  //     code: 404,
+  //     message: `unspported operations for cosmos`,
+  //     retriable: false,
+  //   };
+  // }
 
   // SigningStargateClient, sign using the signerData
   async combine(
@@ -113,40 +141,14 @@ export class ConstructionService {
     // PubKey, sequence, feeAmount, txType, value, accountNumber: number
     switch (request.network_identifier.blockchain) {
       case 'cosmoshub-4': {
-        const amino = aminoTypes.toAmino(
-          JSON.parse(request.unsigned_transaction),
-        );
-        const fee = { amount: [coin('2500', 'uatom')], gas: '1000000' };
-
-        const chainId = 'cosmoshub-4';
-        const account = await this.configService.stargateClient.getAccount(
-          'cosmos1hfml4tzwlc3mvynsg6vtgywyx00wfkhrtpkx6t',
-        );
-
-        console.log(account);
-
-        const signDoc = makeSignDoc(
-          [amino],
-          fee,
-          chainId,
-          '',
-          account.accountNumber,
-          account.sequence,
-        );
-
-        const client = await Secp256k1Wallet.fromKey(
-          new TextEncoder().encode(request.signatures[0].hex_bytes),
-        );
-
-        const signedResponse = await client.signAmino(
-          request.signatures[0].signing_payload.address!,
-          signDoc,
-        );
+        const unsigned_transaction = JSON.parse(request.unsigned_transaction);
+        const signed_transaction = JSON.stringify({
+          signed: unsigned_transaction,
+          signature: request.signatures,
+        });
 
         return {
-          signed_transaction: new TextDecoder().decode(
-            serializeSignDoc(signedResponse.signed),
-          ),
+          signed_transaction,
         };
       }
       default: {
